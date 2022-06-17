@@ -160,21 +160,30 @@ export function createComponent<
 
     const forceUpdate = useForceUpdate()
     const theme = useTheme(props.theme, componentName, props, forceUpdate)
-    const [state, set_] = useState<TamaguiComponentState>(defaultComponentState)
-    const setStateShallow = createShallowUpdate(set_)
+    const statesUsed = useState<TamaguiComponentState>(defaultComponentState)
+    const setStateShallow = createShallowUpdate(statesUsed[1])
+    let state = statesUsed[0]
+
+    // allow forcing a pseudo state on
+    if (propsIn.forceStyle) {
+      state[propsIn.forceStyle] = true
+      console.log('forcing', { ...state })
+    }
 
     const shouldAvoidClasses = !!(props.animation && avoidClasses)
-    const splitStyleState = !shouldAvoidClasses
-      ? {
-          ...state,
-          dynamicStylesInline: true,
-        }
-      : ({
-          ...state,
-          noClassNames: true,
-          dynamicStylesInline: true,
-          resolveVariablesAs: 'value',
-        } as const)
+    const shouldForcePseudo = !!propsIn.forceStyle
+    const splitStyleState =
+      !shouldAvoidClasses && !shouldForcePseudo
+        ? {
+            ...state,
+            dynamicStylesInline: true,
+          }
+        : ({
+            ...state,
+            noClassNames: true,
+            dynamicStylesInline: true,
+            resolveVariablesAs: 'value',
+          } as const)
     const splitStyles = useSplitStyles(
       props,
       staticConfig,
@@ -224,8 +233,8 @@ export function createComponent<
       hrefAttrs,
       separator,
       // ignore from here on out
-      // for next/link compat etc
-      // @ts-ignore
+      forceStyle: _forceStyle,
+      // @ts-ignore  for next/link compat etc
       onClick,
       theme: _themeProp,
       // @ts-ignore
